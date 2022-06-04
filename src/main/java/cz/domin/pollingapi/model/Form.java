@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.UUID;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -18,6 +19,8 @@ public class Form {
             strategy = GenerationType.IDENTITY
     )
     private Long id;
+    @Column
+    private String formToken = UUID.randomUUID().toString();
     @Column
     private String name;
     @Column
