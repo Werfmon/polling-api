@@ -9,6 +9,7 @@ import javax.persistence.*;
 @Setter
 @Getter
 @Entity
+@Table
 public class Answer {
     @Id
     @GeneratedValue(

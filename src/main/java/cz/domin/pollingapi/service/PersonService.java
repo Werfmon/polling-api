@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -26,6 +27,10 @@ public class PersonService implements UserDetailsService {
 
     public Person create(NewPersonDTO newPersonDTO) {
         Person person = modelMapper.map(newPersonDTO, Person.class);
+        long numberOfPeople = this.getAllPeople().stream().filter(p -> p.getUsername().equals(person.getUsername())).count();
+        if(numberOfPeople > 0) {
+            throw new IllegalArgumentException("User exists");
+        }
         person.setPassword(bCryptPasswordEncoder.encode(person.getPassword()));
         return personRepository.save(person);
     }

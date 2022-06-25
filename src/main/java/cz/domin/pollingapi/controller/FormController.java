@@ -1,6 +1,7 @@
 package cz.domin.pollingapi.controller;
 
 import cz.domin.pollingapi.controller.dto.NewFormDTO;
+import cz.domin.pollingapi.controller.dto.NewFullFormDTO;
 import cz.domin.pollingapi.controller.dto.UpdateFormDTO;
 import cz.domin.pollingapi.model.Form;
 import cz.domin.pollingapi.service.FormService;
@@ -33,5 +34,10 @@ public class FormController {
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
         return formService.delete(id);
+    }
+
+    @PostMapping("/create")
+    public Form createFullForm(@RequestBody NewFullFormDTO newFullFormDTO) {
+        return formService.createFullForm(newFullFormDTO);
     }
 }
