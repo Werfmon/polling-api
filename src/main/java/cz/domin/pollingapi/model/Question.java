@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
@@ -24,5 +25,8 @@ public class Question {
     @Column
     private String description;
     @ManyToOne
+    @JoinColumn(name = "form_id")
     private Form form;
+    @OneToMany(mappedBy = "question")
+    private List<Answer> answers = new ArrayList<>();
 }

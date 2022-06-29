@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -25,4 +27,8 @@ public class Form {
     private String name;
     @Column
     private String description;
+    @ManyToMany(mappedBy = "forms", fetch = FetchType.LAZY)
+    private List<Person> people = new ArrayList<>();
+    @OneToMany(mappedBy = "form")
+    private List<Question> questions = new ArrayList<>();
 }

@@ -1,27 +1,24 @@
 package cz.domin.pollingapi.service;
 
 import cz.domin.pollingapi.controller.dto.*;
-import cz.domin.pollingapi.model.Answer;
-import cz.domin.pollingapi.model.Form;
-import cz.domin.pollingapi.model.Question;
-import cz.domin.pollingapi.repository.AnswerRepository;
-import cz.domin.pollingapi.repository.FormRepository;
-import cz.domin.pollingapi.repository.QuestionRepository;
+import cz.domin.pollingapi.model.*;
+import cz.domin.pollingapi.repository.*;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class FormService {
     private final FormRepository formRepository;
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
+    private final PersonRepository personRepository;
+    private final FormRatingRepository formRatingRepository;
     private final ModelMapper modelMapper;
 
     public Form getFormById(Long id) {
@@ -44,7 +41,7 @@ public class FormService {
         formRepository.delete(this.getFormById(id));
         return "Form with id " + id + " was deleted successfully";
     }
-    public Form createFullForm(NewFullFormDTO newFullFormDTO){
+    public Map<String, String> createFullForm(NewFullFormDTO newFullFormDTO) {
         Form form = modelMapper.map(newFullFormDTO, Form.class);
         formRepository.save(form);
 
@@ -59,7 +56,7 @@ public class FormService {
         Iterator<NewFullQuestionDTO> newFullQuestionDTOIterator = newFullQuestionDTOS.listIterator();
         List<Answer> answers = new ArrayList<>();
 
-        while(newFullQuestionDTOIterator.hasNext()) {
+        while (newFullQuestionDTOIterator.hasNext()) {
             newFullQuestionDTOIterator
                     .next()
                     .getAnswers()
@@ -72,6 +69,61 @@ public class FormService {
         }
         answers.forEach(a -> answerRepository.save(a));
 
-        return form;
+        return Map.of("token", form.getFormToken());
+    }
+    public Form getFormByFormToken(String formToken) {
+        return formRepository.findFormByFormToken(formToken)
+                .orElseThrow(() -> new IllegalArgumentException("Form with token: " + formToken + " not found"));
+    }
+    public FullFormDTO joinForm(String formToken, Person person) {
+        Form form;
+        try {
+            form = this.getFormByFormToken(formToken);
+        } catch (IllegalArgumentException e) {
+            log.error("Form not found");
+            return null;
+        }
+        // TODO: pokud bude nejaky zaznam o tom, ze se uzivatel zurcastnil dotazniku, nepusti ho to k nemu: DONE
+        // TODO: (pokud nebude, zapise jej do tabulky): DONE, ze se zucatnil a vrati cely dotaznik
+        long filled = person.getForms().stream()
+                .filter(f -> f.getFormToken().equals(formToken))
+                .count();
+        if(filled < 1) {
+            List<Form> forms = person.getForms();
+            forms.add(form);
+            person.setForms(forms);
+            personRepository.save(person);
+
+            List<Person> people = form.getPeople();
+            people.add(person);
+            form.setPeople(people);
+            formRepository.save(form);
+        }
+        return modelMapper.map(form, FullFormDTO.class);
+    }
+    public Map<String, Number> saveFormResult(HashMap<String, Integer> result, Long id, Person person) {
+        final Integer points = result.get("result");
+
+        FormRatingKey formRatingKey = new FormRatingKey();
+        Form form = this.getFormById(id);
+
+        formRatingKey.setFormId(form.getId());
+        formRatingKey.setPersonId(person.getId());
+
+        FormRating formRating = new FormRating();
+        formRating.setForm(form);
+        formRating.setPerson(person);
+        formRating.setRating(points);
+        formRating.setId(formRatingKey);
+
+        this.formRatingRepository.save(formRating);
+
+        HashMap<String, Number> response = new HashMap<>();
+
+        response.put("formId", form.getId());
+        response.put("personId", person.getId());
+        response.put("rating", points);
+
+        return response;
     }
 }
