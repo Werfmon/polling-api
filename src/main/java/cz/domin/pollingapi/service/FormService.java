@@ -6,7 +6,9 @@ import cz.domin.pollingapi.repository.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -83,8 +85,6 @@ public class FormService {
             log.error("Form not found");
             return null;
         }
-        // TODO: pokud bude nejaky zaznam o tom, ze se uzivatel zurcastnil dotazniku, nepusti ho to k nemu: DONE
-        // TODO: (pokud nebude, zapise jej do tabulky): DONE, ze se zucatnil a vrati cely dotaznik
         long filled = person.getForms().stream()
                 .filter(f -> f.getFormToken().equals(formToken))
                 .count();
@@ -101,11 +101,11 @@ public class FormService {
         }
         return modelMapper.map(form, FullFormDTO.class);
     }
-    public Map<String, Number> saveFormResult(HashMap<String, Integer> result, Long id, Person person) {
+    public Map<String, Number> saveFormResult(HashMap<String, Integer> result, String token, Person person) {
         final Integer points = result.get("result");
 
         FormRatingKey formRatingKey = new FormRatingKey();
-        Form form = this.getFormById(id);
+        Form form = this.getFormByFormToken(token);
 
         formRatingKey.setFormId(form.getId());
         formRatingKey.setPersonId(person.getId());
@@ -114,12 +114,15 @@ public class FormService {
         formRating.setForm(form);
         formRating.setPerson(person);
         formRating.setRating(points);
-        formRating.setId(formRatingKey);
-
-        this.formRatingRepository.save(formRating);
 
         HashMap<String, Number> response = new HashMap<>();
-
+        if(formRating.getRating() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Form was filled"
+            );
+        }
+        this.formRatingRepository.save(formRating);
+        formRating.setId(formRatingKey);
         response.put("formId", form.getId());
         response.put("personId", person.getId());
         response.put("rating", points);

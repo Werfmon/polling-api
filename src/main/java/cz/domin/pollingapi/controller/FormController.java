@@ -61,8 +61,8 @@ public class FormController {
         Person person = personService.getPersonByUsername(username);
         return formService.joinForm(formToken, person);
     }
-    @PostMapping("/{form_id}/result/save")
-    public Map<String, Number> saveFormResult(Authentication authentication, @RequestBody HashMap<String, Integer> result, @PathVariable(name = "form_id") Long id) {
+    @PostMapping("/{form_token}/result/save")
+    public Map<String, Number> saveFormResult(Authentication authentication, @RequestBody HashMap<String, Integer> result, @PathVariable(name = "form_token") String token) {
         String username = "";
         try {
             username = authentication.getName();
@@ -70,6 +70,6 @@ public class FormController {
             log.error("Cannot get user from Authentication");
         }
         Person person = personService.getPersonByUsername(username);
-        return this.formService.saveFormResult(result, id, person);
+        return this.formService.saveFormResult(result, token, person);
     }
 }
